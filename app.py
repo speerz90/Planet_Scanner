@@ -4,7 +4,7 @@ import os
 import requests
 from datetime import datetime, timedelta
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates")
 
 # ====================== SWISS EPHEMERIS ======================
 # EPHE_DIR = os.path.join(os.getcwd(), "ephe")
