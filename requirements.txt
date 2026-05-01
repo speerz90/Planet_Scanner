@@ -1,0 +1,10 @@
+Flask==3.0.3
+pandas
+#pyswisseph
+requests
+python-dotenv
+
+flask
+flask-cors
+gunicorn
+pyswisseph==2.10.3.2

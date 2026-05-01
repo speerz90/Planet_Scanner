@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Planetary Scanner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #f9f7f4;
+      --surface2: #f2ede6;
+      --border: #ddd5c8;
+      --border-light: #c8bfb0;
+      --gold: #9a6f1e;
+      --gold-dim: #b8891f;
+      --gold-glow: rgba(154,111,30,0.10);
+      --text: #1a1410;
+      --text-dim: #4a3f30;
+      --text-muted: #9a8e80;
+      --final: #d6f0df;
+      --final-border: #5cb87a;
+      --final-text: #1a5c30;
+      --event: #d6e8f5;
+      --event-border: #4d8fbf;
+      --event-text: #1a3f5c;
+      --move: #fdf0d0;
+      --move-border: #c89a30;
+      --move-text: #6b4e10;
+      --red: #c0392b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Crimson Pro', serif;
+      font-size: 18px;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 52px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+
+    header::after {
+      content: '✦';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg);
+      padding: 0 16px;
+      color: var(--gold);
+      font-size: 14px;
+    }
+
+    .header-eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      letter-spacing: 0.3em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      opacity: 0.8;
+    }
+
+    h1 {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      color: var(--text);
+      line-height: 1.1;
+      margin-bottom: 12px;
+    }
+
+    h1 span {
+      color: var(--gold);
+    }
+
+    .header-sub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      letter-spacing: 0.2em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    /* Grid layout */
+    .config-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 760px) {
+      .config-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 28px;
+      position: relative;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+      opacity: 0.5;
+    }
+
+    .card-wide {
+      grid-column: 1 / -1;
+    }
+
+    .card-title {
+      font-family: 'Cinzel', serif;
+      font-size: 14px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* Form controls */
+    label {
+      display: block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+      margin-top: 16px;
+    }
+
+    label:first-of-type { margin-top: 0; }
+
+    input[type="number"],
+    input[type="date"],
+    select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border-light);
+      color: var(--text);
+      padding: 11px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      border-radius: 2px;
+      outline: none;
+      transition: border-color 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="number"]:focus,
+    input[type="date"]:focus,
+    select:focus {
+      border-color: var(--gold-dim);
+      box-shadow: 0 0 0 2px var(--gold-glow);
+    }
+
+    select {
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a6e2f'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+    }
+
+    /* Orb row */
+    .orb-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+    }
+
+    /* Planet checkboxes */
+    .planet-group {
+      margin-bottom: 16px;
+    }
+
+    .planet-group-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 8px;
+    }
+
+    .checkbox-pill {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 8px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+      width: 100%;
+    }
+
+    .checkbox-pill:hover {
+      border-color: var(--border-light);
+    }
+
+    .checkbox-pill input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--gold);
+      cursor: pointer;
+    }
+
+    .checkbox-pill span {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    .checkbox-pill:has(input:checked) {
+      border-color: var(--gold-dim);
+      background: var(--gold-glow);
+    }
+
+    .checkbox-pill:has(input:checked) span {
+      color: var(--gold);
+    }
+
+    /* Axis items */
+    .axis-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .axis-item {
+      display: grid;
+      grid-template-columns: 40px 1fr 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      transition: border-color 0.2s;
+    }
+
+    .axis-item:hover { border-color: var(--border-light); }
+
+    .axis-num {
+      font-family: 'Cinzel', serif;
+      font-size: 18px;
+      color: var(--gold-dim);
+      text-align: center;
+    }
+
+    .axis-item input[type="number"],
+    .axis-item select {
+      margin: 0;
+    }
+
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    button {
+      font-family: 'Cinzel', serif;
+      font-size: 12px;
+      letter-spacing: 0.15em;
+      cursor: pointer;
+      border: none;
+      border-radius: 2px;
+      padding: 14px 28px;
+      transition: all 0.2s;
+      text-transform: uppercase;
+    }
+
+    .btn-primary {
+      background: var(--gold);
+      color: #0d0c0a;
+      font-weight: 600;
+    }
+
+    .btn-primary:hover {
+      background: #e0b85a;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(201,168,76,0.3);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border-light);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--gold-dim);
+      color: var(--gold);
+    }
+
+    .btn-add {
+      background: transparent;
+      color: var(--gold-dim);
+      border: 1px dashed var(--border-light);
+      padding: 10px 20px;
+      font-size: 11px;
+      width: 100%;
+      margin-top: 12px;
+    }
+
+    .btn-add:hover {
+      border-color: var(--gold-dim);
+      color: var(--gold);
+      background: var(--gold-glow);
+    }
+
+    .btn-remove {
+      background: transparent;
+      border: 1px solid #3d1a1a;
+      color: #8b4040;
+      padding: 6px 12px;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      border-radius: 2px;
+    }
+
+    .btn-remove:hover {
+      background: #1a0808;
+      border-color: var(--red);
+      color: #cf6060;
+    }
+
+    /* Status */
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--gold);
+      animation: pulse 1.2s infinite;
+      display: none;
+    }
+
+    .status-dot.visible { display: block; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.3; transform: scale(0.7); }
+    }
+
+    /* Results */
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .results-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+
+    .results-count strong {
+      color: var(--gold);
+      font-size: 20px;
+    }
+
+    /* Table */
+    .table-wrap {
+      overflow-x: auto;
+      overflow-y: auto;
+      max-height: 60vh;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 15px;
+    }
+
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--surface2);
+    }
+
+    th {
+      background: var(--surface2);
+      padding: 8px 10px;
+      text-align: left;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+      line-height: 1.4;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .td-datetime {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+
+    .td-datetime .date { color: var(--text); font-size: 12px; }
+    .td-datetime .time { color: var(--text-muted); margin-top: 2px; }
+
+    .td-planets {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .td-planets .empty { color: var(--text-muted); }
+
+    .planet-tag {
+      display: inline-block;
+      padding: 2px 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border-light);
+      border-radius: 2px;
+      margin: 1px 2px 1px 0;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .strength-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 2px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .badge-FINAL_EVENT {
+      background: var(--final);
+      border: 1px solid var(--final-border);
+      color: var(--final-text);
+    }
+
+    .badge-EVENT_WINDOW {
+      background: var(--event);
+      border: 1px solid var(--event-border);
+      color: var(--event-text);
+    }
+
+    .badge-MOVEMENT {
+      background: var(--move);
+      border: 1px solid var(--move-border);
+      color: var(--move-text);
+    }
+
+    .event-type {
+      font-family: 'Crimson Pro', serif;
+      font-size: 15px;
+      color: var(--text-dim);
+      font-style: italic;
+    }
+
+    /* Row highlighting by strength */
+    tr.row-FINAL_EVENT td { background: rgba(90,180,120,0.12); }
+    tr.row-EVENT_WINDOW td { background: rgba(77,143,191,0.10); }
+    tr.row-MOVEMENT td { background: rgba(200,154,48,0.10); }
+
+    /* No results */
+    .no-results {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+      font-family: 'Cinzel', serif;
+      font-size: 16px;
+      letter-spacing: 0.1em;
+    }
+
+    .no-results .icon {
+      font-size: 36px;
+      margin-bottom: 12px;
+      opacity: 0.4;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-bottom: 24px;
+      min-height: 20px;
+    }
+
+    /* Scan settings row */
+    .scan-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 600px) {
+      .scan-row { grid-template-columns: 1fr 1fr; }
+      .orb-row { grid-template-columns: 1fr; }
+      .axis-item { grid-template-columns: 30px 1fr; grid-template-rows: auto auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <div class="header-eyebrow">Vedic Astrology · Swiss Ephemeris</div>
+      <h1>Planetary <span>Scanner</span></h1>
+      <div class="header-sub">Lahiri Sidereal · Planetary Transit Detection</div>
+    </header>
+
+    <!-- Natal Details -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-title">Birth Details</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
+        <div>
+          <label>Date of Birth</label>
+          <input type="date" id="dob" value="1990-01-22">
+        </div>
+        <div>
+          <label>Hour of Birth</label>
+          <input type="number" id="tob_h" value="17" min="0" max="23" placeholder="Hour">
+        </div>
+        <div>
+          <label>Minute of Birth</label>
+          <input type="number" id="tob_m" value="35" min="0" max="59" placeholder="Min">
+        </div>
+        <div>
+          <label>Place of Birth</label>
+          <input type="text" id="place_of_birth" value="Pune, India" placeholder="City, Country"
+            style="width:100%;background:var(--bg);border:1px solid var(--border-light);color:var(--text);padding:11px 14px;font-family:'JetBrains Mono',monospace;font-size:14px;border-radius:2px;outline:none;" oninput="clearTimezone()">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:16px;align-items:flex-end;margin-bottom:4px;">
+        <div>
+          <label>Timezone</label>
+          <select id="timezone_select" style="width:100%;" onchange="onTimezoneSelect()">
+            <option value="">— select timezone —</option>
+          </select>
+        </div>
+        <div>
+          <label>UTC Offset (hrs)</label>
+          <input type="number" id="utc_offset" value="5.5" step="0.5" min="-12" max="14"
+            style="width:100%;background:var(--bg);border:1px solid var(--border-light);color:var(--text);padding:11px 14px;font-family:'JetBrains Mono',monospace;font-size:14px;border-radius:2px;outline:none;">
+        </div>
+        <div>
+          <button class="btn-secondary" style="padding:11px 20px;font-size:11px;white-space:nowrap;" onclick="computeNatal()">&#8635; Compute Natal Chart</button>
+        </div>
+      </div>
+      <div id="natalResult" style="margin-top:16px;display:none;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-muted);margin-bottom:8px;letter-spacing:0.1em;text-transform:uppercase;">Natal Positions</div>
+        <div id="natalPlanets" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
+
+      </div>
+    </div>
+
+    <div class="config-grid">
+
+      <!-- Orbs -->
+      <div class="card">
+        <div class="card-title">Orb Settings</div>
+        <div class="orb-row">
+          <div>
+            <label>Trigger Orb</label>
+            <input type="number" id="orbTrigger" value="1" step="0.1" min="0" max="30">
+          </div>
+          <div>
+            <label>Moon Orb</label>
+            <input type="number" id="orbMoon" value="1" step="0.1" min="0" max="30">
+          </div>
+          <div>
+            <label>Background Orb</label>
+            <input type="number" id="orbBg" value="1" step="0.1" min="0" max="30">
+          </div>
+        </div>
+      </div>
+
+
+      <!-- Scan Settings -->
+      <div class="card">
+        <div class="card-title">Scan Settings</div>
+        <div class="scan-row">
+          <div>
+            <label>Start Date</label>
+            <input type="date" id="startDate" value="2026-05-25">
+          </div>
+          <div>
+            <label>End Date</label>
+            <input type="date" id="endDate" value="2026-06-10">
+          </div>
+          <div>
+            <label>Step (hours)</label>
+            <input type="number" id="stepHours" value="4" min="1" max="48">
+          </div>
+        </div>
+      </div>
+
+      <!-- Include Planets -->
+      <div class="card card-wide">
+        <div class="card-title">Transit Planets to Scan</div>
+        <div class="checkbox-grid">
+          <label class="checkbox-pill"><input type="checkbox" id="inc_sun" value="sun" checked><span>☉ Sun</span></label>
+          <label class="checkbox-pill"><input type="checkbox" id="inc_moon" value="moon" checked><span>☽ Moon</span></label>
+          <label class="checkbox-pill"><input type="checkbox" id="inc_mercury" value="mercury" checked><span>☿ Mercury</span></label>
+          <label class="checkbox-pill"><input type="checkbox" id="inc_venus" value="venus" checked><span>♀ Venus</span></label>
+          <label class="checkbox-pill"><input type="checkbox" id="inc_mars" value="mars" checked><span>♂ Mars</span></label>
+          <label class="checkbox-pill"><input type="checkbox" id="inc_jupiter" value="jupiter" checked><span>♃ Jupiter</span></label>
+          <label class="checkbox-pill"><input type="checkbox" id="inc_saturn" value="saturn" checked><span>♄ Saturn</span></label>
+          <label class="checkbox-pill"><input type="checkbox" id="inc_rahu" value="truenode" checked><span>☊ Rahu</span></label>
+          <label class="checkbox-pill"><input type="checkbox" id="inc_ketu" value="southnode" checked><span>☋ Ketu</span></label>
+        </div>
+      </div>
+
+      <!-- Natal Planets to Activate -->
+      <div class="card card-wide">
+        <div class="card-title">Natal Planets to Activate</div>
+        <div id="natal_planet_checkboxes" class="checkbox-grid">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);">Compute natal chart first…</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Action buttons -->
+    <div class="btn-row">
+      <button class="btn-primary" onclick="runScan()">▶ Run Scan</button>
+    </div>
+
+    <!-- Status -->
+    <div class="status-bar">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText"></span>
+    </div>
+
+    <!-- Results -->
+    <div id="results"></div>
+
+  </div>
+
+  <script>
+    let scanResults = [];
+
+    function clearTimezone() {
+      document.getElementById('timezone_select').value = '';
+    }
+
+    function onTimezoneSelect() {
+      const tz = document.getElementById('timezone_select').value;
+      if (!tz) return;
+      // Compute current UTC offset for selected timezone
+      const now = new Date();
+      const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+      try {
+        const tzDate = new Date(now.toLocaleString('en-US', {timeZone: tz}));
+        const diff = (tzDate - new Date(now.toLocaleString('en-US', {timeZone: 'UTC'}))) / 3600000;
+        document.getElementById('utc_offset').value = diff.toFixed(1);
+      } catch(e) {}
+    }
+
+    // Populate common timezones
+    (function populateTimezones() {
+      const TZ_LIST = [
+        ['Asia/Kolkata','IST — India (+5:30)'],['Asia/Colombo','Sri Lanka (+5:30)'],
+        ['Asia/Karachi','PKT — Pakistan (+5)'],['Asia/Dhaka','BST — Bangladesh (+6)'],
+        ['Asia/Kathmandu','NPT — Nepal (+5:45)'],['Asia/Kabul','AFT (+4:30)'],
+        ['Asia/Dubai','GST — UAE (+4)'],['Asia/Tehran','IRST (+3:30)'],
+        ['Asia/Riyadh','AST — Saudi (+3)'],['Europe/London','GMT/BST (+0/+1)'],
+        ['Europe/Paris','CET — France (+1/+2)'],['Europe/Moscow','MSK — Russia (+3)'],
+        ['America/New_York','EST — US East (-5/-4)'],['America/Los_Angeles','PST — US West (-8/-7)'],
+        ['America/Chicago','CST — US Central (-6/-5)'],['America/Toronto','EST — Canada East (-5/-4)'],
+        ['Australia/Sydney','AEST (+10/+11)'],['Asia/Singapore','SGT (+8)'],
+        ['Asia/Tokyo','JST (+9)'],['Asia/Shanghai','CST — China (+8)'],
+        ['Pacific/Auckland','NZST (+12/+13)'],['Africa/Nairobi','EAT (+3)'],
+      ];
+      const sel = document.getElementById('timezone_select');
+      TZ_LIST.forEach(([val, label]) => {
+        const opt = document.createElement('option');
+        opt.value = val; opt.textContent = label;
+        sel.appendChild(opt);
+      });
+      // Default to IST
+      try {
+        sel.value = 'Asia/Kolkata';
+        onTimezoneSelect();
+      } catch(e) {}
+    })();
+
+    async function computeNatal() {
+      const dob = document.getElementById('dob').value;
+      const h = document.getElementById('tob_h').value.padStart(2,'0');
+      const m = document.getElementById('tob_m').value.padStart(2,'0');
+      const tob = `${h}:${m}`;
+      const utcOffset = parseFloat(document.getElementById('utc_offset').value) || 0;
+      const place = document.getElementById('place_of_birth').value || '';
+
+      setStatus('Computing natal chart…', true);
+      try {
+        const res = await fetch('/natal', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({dob, tob, utcOffset, place})
+        });
+        const data = await res.json();
+        if (data.error) { setStatus('Error: ' + data.error); return; }
+
+        window._allAxes = data.all_axes;
+        renderNatal(data);
+        setStatus(`Natal chart computed for ${place || 'unknown place'} — ${Object.keys(data.natal).length} planets on axis.`, false);
+      } catch(e) {
+        setStatus('Error: ' + e.message, false);
+      }
+    }
+
+    function renderNatal(data) {
+      const GLYPHS = {sun:'☉',moon:'☽',mercury:'☿',venus:'♀',mars:'♂',jupiter:'♃',saturn:'♄',truenode:'☊',southnode:'☋'};
+      const NAMES  = {sun:'Sun',moon:'Moon',mercury:'Mercury',venus:'Venus',mars:'Mars',jupiter:'Jupiter',saturn:'Saturn',truenode:'Rahu',southnode:'Ketu'};
+
+      const planetsEl = document.getElementById('natalPlanets');
+      planetsEl.innerHTML = Object.entries(data.natal).map(([k,v]) =>
+        `<span class="planet-tag">${GLYPHS[k]||''} ${NAMES[k]||k}: ${v.display}</span>`
+      ).join('');
+
+      // Axis display removed
+
+      document.getElementById('natalResult').style.display = 'block';
+
+      // Populate natal planet activation checkboxes
+      const GLYPHS2 = {sun:'☉',moon:'☽',mercury:'☿',venus:'♀',mars:'♂',jupiter:'♃',saturn:'♄',truenode:'☊',southnode:'☋'};
+      const NAMES2  = {sun:'Sun',moon:'Moon',mercury:'Mercury',venus:'Venus',mars:'Mars',jupiter:'Jupiter',saturn:'Saturn',truenode:'Rahu',southnode:'Ketu'};
+      const npc = document.getElementById('natal_planet_checkboxes');
+      npc.innerHTML = Object.keys(data.natal).map(k =>
+        `<label class="checkbox-pill">
+          <input type="checkbox" name="natal_planet" value="${k}">
+          <span>${GLYPHS2[k]||''} ${NAMES2[k]||k}</span>
+        </label>`
+      ).join('');
+    }
+
+    function lonToSign(lon) {
+      const SIGNS = ["Ari","Tau","Gem","Can","Leo","Vir","Lib","Sco","Sag","Cap","Aqu","Pis"];
+      const deg = lon % 30;
+      const sign = SIGNS[Math.floor(lon / 30) % 12];
+      return deg.toFixed(2) + '° ' + sign;
+    }
+
+    function setStatus(msg, loading = false) {
+      document.getElementById('statusText').textContent = msg;
+      document.getElementById('statusDot').classList.toggle('visible', loading);
+    }
+
+    async function runScan() {
+      if (!window._allAxes || Object.keys(window._allAxes).length === 0) {
+        setStatus('Please compute natal chart first.');
+        return;
+      }
+
+      const selectedPlanets = [...document.querySelectorAll('#inc_sun,#inc_moon,#inc_mercury,#inc_venus,#inc_mars,#inc_jupiter,#inc_saturn,#inc_rahu,#inc_ketu')]
+        .filter(cb => cb.checked).map(cb => cb.value);
+
+      if (!selectedPlanets.length) { setStatus('Select at least one planet.'); return; }
+
+      // Filter allAxes to only selected natal planets
+      const selectedNatal = [...document.querySelectorAll('#natal_planet_checkboxes input[type=checkbox]')]
+        .filter(cb => cb.checked).map(cb => cb.value);
+      const filteredAxes = {};
+      Object.entries(window._allAxes || {}).forEach(([k,v]) => {
+        if (selectedNatal.includes(k)) filteredAxes[k] = v;
+      });
+      if (!Object.keys(filteredAxes).length) { setStatus('Select at least one natal planet to activate.'); return; }
+
+      const payload = {
+        selectedPlanets,
+        allAxes:    filteredAxes,
+        orbTrigger: parseFloat(document.getElementById('orbTrigger').value),
+        orbMoon:    parseFloat(document.getElementById('orbMoon').value),
+        orbBg:      parseFloat(document.getElementById('orbBg').value),
+        startDate:  document.getElementById('startDate').value,
+        endDate:    document.getElementById('endDate').value,
+        stepHours:  parseInt(document.getElementById('stepHours').value),
+      };
+
+      setStatus('Scanning planetary positions…', true);
+      document.getElementById('results').innerHTML = '';
+
+      try {
+        const res = await fetch('/scan', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        scanResults = data.events;
+        setStatus(`Scan complete — ${data.count} event${data.count !== 1 ? 's' : ''} found.`, false);
+        renderResults(data);
+      } catch (err) {
+        setStatus('Error: ' + err.message, false);
+      }
+    }
+
+    function makeTags(hits) {
+      if (!hits || !hits.length) return '<span class="empty">—</span>';
+      return hits.map(ap =>
+        `<span class="planet-tag">${ap.planet} → ${ap.relation} ±${ap.orb}°</span>`
+      ).join(' ');
+    }
+
+    function renderResults(data) {
+      if (!data.events || data.events.length === 0) {
+        document.getElementById('results').innerHTML = `
+          <div class="no-results">
+            <div class="icon">✦</div>
+            No events found with current settings.
+          </div>`;
+        return;
+      }
+
+      // Each event has activated_natal_planets[] — one row per natal planet per timestamp
+      const rows = [];
+      data.events.forEach(e => {
+        const [date, time] = e.datetime.split(' ');
+        (e.activated_natal_planets || []).forEach((np, idx) => {
+          rows.push(`
+            <tr>
+              <td class="td-datetime">
+                ${idx === 0 ? `<div class="date">${date}</div><div class="time">${time}</div>` : '<div class="time" style="opacity:0.4">↑ same</div>'}
+              </td>
+              <td class="td-planets" style="color:var(--gold);font-weight:600;white-space:nowrap;">
+                <span class="planet-tag" style="border-color:var(--gold-dim);background:var(--gold-glow);color:var(--gold);">🎯 ${np.natal_planet}</span>
+              </td>
+              <td class="td-planets">${makeTags(np.trigger)}</td>
+              <td class="td-planets">${makeTags(np.moon)}</td>
+              <td class="td-planets">${makeTags(np.background)}</td>
+            </tr>`);
+        });
+      });
+
+      document.getElementById('results').innerHTML = `
+        <div class="results-header">
+          <div class="results-count"><strong>${data.count}</strong> activation window${data.count !== 1 ? 's' : ''} found</div>
+          <button class="btn-secondary" style="font-size:11px;padding:8px 16px;" onclick="exportJSON()">↓ Export JSON</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date / Time</th>
+                <th>Natal Planet</th>
+                <th>Trigger (Sun/Mer/Ven/Mars)</th>
+                <th>Moon</th>
+                <th>Background (Jup/Sat/Rahu/Ketu)</th>
+              </tr>
+            </thead>
+            <tbody>${rows.join('')}</tbody>
+          </table>
+        </div>`;
+    }
+
+    function exportJSON() {
+      if (!scanResults.length) { alert('Run a scan first.'); return; }
+      const blob = new Blob([JSON.stringify({events: scanResults, count: scanResults.length}, null, 2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'saturn_transits.json';
+      a.click();
+    }
+
+    // Auto-compute natal on load
+    window.onload = () => computeNatal();
+  </script>
+</body>
+</html>
