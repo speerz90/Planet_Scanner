@@ -591,7 +591,7 @@
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
         <div>
           <label>Date of Birth</label>
-          <input type="date" id="dob" value="2025-01-01">
+          <input type="date" id="dob" value="1990-01-22">
         </div>
         <div>
           <label>Hour of Birth</label>
@@ -776,6 +776,12 @@
           headers: {'Content-Type':'application/json'},
           body: JSON.stringify({dob, tob, utcOffset, place})
         });
+        if (!res.ok) {
+          const txt = await res.text();
+          const snippet = txt.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim().slice(0,300);
+          setStatus('Server error ' + res.status + ': ' + snippet, false);
+          return;
+        }
         const data = await res.json();
         if (data.error) { setStatus('Error: ' + data.error); return; }
 
@@ -864,6 +870,12 @@
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify(payload)
         });
+        if (!res.ok) {
+          const txt = await res.text();
+          const snippet = txt.replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim().slice(0,300);
+          setStatus('Server error ' + res.status + ': ' + snippet, false);
+          return;
+        }
         const data = await res.json();
         scanResults = data.events;
         setStatus(`Scan complete — ${data.count} event${data.count !== 1 ? 's' : ''} found.`, false);
