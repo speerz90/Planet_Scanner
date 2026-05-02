@@ -228,8 +228,20 @@
 
     .checkbox-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      grid-template-columns: repeat(6, 1fr);
       gap: 8px;
+    }
+
+    @media (max-width: 760px) {
+      .checkbox-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .checkbox-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* Prevent first pill from stretching alone on its row */
+    .checkbox-pill {
+      min-width: 0;
     }
 
     .checkbox-pill {
@@ -244,7 +256,6 @@
       cursor: pointer;
       transition: all 0.15s;
       user-select: none;
-      width: 100%;
     }
 
     .checkbox-pill:hover {
@@ -441,11 +452,11 @@
 
     th {
       background: var(--surface2);
-      padding: 8px 10px;
+      padding: 12px 14px;
       text-align: left;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 10px;
-      letter-spacing: 0.2em;
+      font-size: 12px;
+      letter-spacing: 0.15em;
       text-transform: uppercase;
       color: var(--text-muted);
       border-bottom: 1px solid var(--border);
@@ -453,7 +464,7 @@
     }
 
     td {
-      padding: 6px 10px;
+      padding: 10px 14px;
       border-bottom: 1px solid var(--border);
       vertical-align: middle;
       line-height: 1.4;
@@ -465,17 +476,17 @@
 
     .td-datetime {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
+      font-size: 13px;
       color: var(--text-dim);
       white-space: nowrap;
     }
 
-    .td-datetime .date { color: var(--text); font-size: 12px; }
+    .td-datetime .date { color: var(--text); font-size: 14px; }
     .td-datetime .time { color: var(--text-muted); margin-top: 2px; }
 
     .td-planets {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
+      font-size: 15px;
       color: var(--text);
     }
 
@@ -483,12 +494,12 @@
 
     .planet-tag {
       display: inline-block;
-      padding: 2px 6px;
+      padding: 4px 8px;
       background: var(--surface2);
       border: 1px solid var(--border-light);
       border-radius: 2px;
-      margin: 1px 2px 1px 0;
-      font-size: 11px;
+      margin: 2px 3px 2px 0;
+      font-size: 13px;
       white-space: nowrap;
     }
 
@@ -505,10 +516,24 @@
       white-space: nowrap;
     }
 
+    /* Classification filter pill colours */
+    .cls-pill[data-cls="FINAL_EVENT"]:has(input:checked) { border-color: var(--final-border); background: var(--final); }
+    .cls-pill[data-cls="FINAL_EVENT"]:has(input:checked) span { color: var(--final-text); }
+    .cls-pill[data-cls="STRONG_EVENT"]:has(input:checked) { border-color: #5b7fbf; background: #e8f0ff; }
+    .cls-pill[data-cls="STRONG_EVENT"]:has(input:checked) span { color: #1a2f5c; }
+    .cls-pill[data-cls="MOVEMENT"]:has(input:checked) { border-color: var(--move-border); background: var(--move); }
+    .cls-pill[data-cls="MOVEMENT"]:has(input:checked) span { color: var(--move-text); }
+
     .badge-FINAL_EVENT {
       background: var(--final);
       border: 1px solid var(--final-border);
       color: var(--final-text);
+    }
+
+    .badge-STRONG_EVENT {
+      background: #e8f0ff;
+      border: 1px solid #5b7fbf;
+      color: #1a2f5c;
     }
 
     .badge-EVENT_WINDOW {
@@ -532,6 +557,7 @@
 
     /* Row highlighting by strength */
     tr.row-FINAL_EVENT td { background: rgba(90,180,120,0.12); }
+    tr.row-STRONG_EVENT td { background: rgba(91,127,191,0.10); }
     tr.row-EVENT_WINDOW td { background: rgba(77,143,191,0.10); }
     tr.row-MOVEMENT td { background: rgba(200,154,48,0.10); }
 
@@ -638,7 +664,7 @@
         <div class="orb-row">
           <div>
             <label>Trigger Orb</label>
-            <input type="number" id="orbTrigger" value="1" step="0.1" min="0" max="30">
+            <input type="number" id="orbTrigger" value="3" step="0.1" min="0" max="30">
           </div>
           <div>
             <label>Moon Orb</label>
@@ -646,7 +672,7 @@
           </div>
           <div>
             <label>Background Orb</label>
-            <input type="number" id="orbBg" value="1" step="0.1" min="0" max="30">
+            <input type="number" id="orbBg" value="10" step="0.1" min="0" max="30">
           </div>
         </div>
       </div>
@@ -658,11 +684,11 @@
         <div class="scan-row">
           <div>
             <label>Start Date</label>
-            <input type="date" id="startDate" value="2026-05-25">
+            <input type="date" id="startDate">
           </div>
           <div>
             <label>End Date</label>
-            <input type="date" id="endDate" value="2026-06-10">
+            <input type="date" id="endDate">
           </div>
           <div>
             <label>Step (hours)</label>
@@ -693,6 +719,53 @@
         <div id="natal_planet_checkboxes" class="checkbox-grid">
           <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);">Compute natal chart first…</span>
         </div>
+      </div>
+
+      <!-- Aspects -->
+      <div class="card card-wide">
+        <div class="card-title">Aspects to Check</div>
+        <div class="checkbox-grid" id="aspects_grid">
+          <label class="checkbox-pill"><input type="checkbox" class="asp_cb" value="0" checked><span>0°</span></label>
+          <label class="checkbox-pill"><input type="checkbox" class="asp_cb" value="30"><span>30°</span></label>
+          <label class="checkbox-pill"><input type="checkbox" class="asp_cb" value="60"><span>60°</span></label>
+          <label class="checkbox-pill"><input type="checkbox" class="asp_cb" value="90"><span>90°</span></label>
+          <label class="checkbox-pill"><input type="checkbox" class="asp_cb" value="120" checked><span>120°</span></label>
+          <label class="checkbox-pill"><input type="checkbox" class="asp_cb" value="150"><span>150°</span></label>
+          <label class="checkbox-pill"><input type="checkbox" class="asp_cb" value="180" checked><span>180°</span></label>
+          <label class="checkbox-pill"><input type="checkbox" class="asp_cb" value="210"><span>210°</span></label>
+          <label class="checkbox-pill"><input type="checkbox" class="asp_cb" value="240" checked><span>240°</span></label>
+          <label class="checkbox-pill"><input type="checkbox" class="asp_cb" value="270"><span>270°</span></label>
+          <label class="checkbox-pill"><input type="checkbox" class="asp_cb" value="300"><span>300°</span></label>
+          <label class="checkbox-pill"><input type="checkbox" class="asp_cb" value="330"><span>330°</span></label>
+        </div>
+      </div>
+
+      <!-- Classification Filter -->
+      <div class="card card-wide">
+        <div class="card-title">Filter Results by Classification</div>
+        <div class="checkbox-grid" id="classification_filters">
+          <label class="checkbox-pill cls-pill" data-cls="FINAL_EVENT">
+            <input type="checkbox" class="cls_cb" value="FINAL_EVENT" checked>
+            <span>🔥 Final Event</span>
+          </label>
+          <label class="checkbox-pill cls-pill" data-cls="STRONG_EVENT">
+            <input type="checkbox" class="cls_cb" value="STRONG_EVENT" checked>
+            <span>⚡ Strong Event</span>
+          </label>
+          <label class="checkbox-pill cls-pill" data-cls="MOVEMENT">
+            <input type="checkbox" class="cls_cb" value="MOVEMENT" checked>
+            <span>〰️ Movement</span>
+          </label>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);letter-spacing:0.1em;">MIN SCORE</span>
+          <input type="number" id="minScore" value="0" min="0" max="200" step="5"
+            style="width:80px;background:var(--bg);border:1px solid var(--border-light);color:var(--text);padding:6px 10px;font-family:'JetBrains Mono',monospace;font-size:13px;border-radius:2px;outline:none;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);">and above</span>
+          <button class="btn-secondary" style="padding:6px 14px;font-size:10px;margin-left:8px;" onclick="applyFilters()">Apply Filter</button>
+          <button class="btn-secondary" style="padding:6px 14px;font-size:10px;" onclick="resetFilters()">Reset</button>
+        </div>
+        <div id="filter_count" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);margin-top:8px;"></div>
       </div>
 
     </div>
@@ -812,7 +885,7 @@
       const npc = document.getElementById('natal_planet_checkboxes');
       npc.innerHTML = Object.keys(data.natal).map(k =>
         `<label class="checkbox-pill">
-          <input type="checkbox" name="natal_planet" value="${k}">
+          <input type="checkbox" name="natal_planet" value="${k}" ${k === 'saturn' ? 'checked' : ''}>
           <span>${GLYPHS2[k]||''} ${NAMES2[k]||k}</span>
         </label>`
       ).join('');
@@ -850,8 +923,12 @@
       });
       if (!Object.keys(filteredAxes).length) { setStatus('Select at least one natal planet to activate.'); return; }
 
+      const selectedAspects = [...document.querySelectorAll('.asp_cb:checked')].map(cb => cb.value);
+      if (!selectedAspects.length) { setStatus('Select at least one aspect.'); return; }
+
       const payload = {
         selectedPlanets,
+        selectedAspects,
         allAxes:    filteredAxes,
         orbTrigger: parseFloat(document.getElementById('orbTrigger').value),
         orbMoon:    parseFloat(document.getElementById('orbMoon').value),
@@ -859,6 +936,16 @@
         startDate:  document.getElementById('startDate').value,
         endDate:    document.getElementById('endDate').value,
         stepHours:  parseInt(document.getElementById('stepHours').value),
+      };
+
+      // Save birth info for Excel export
+      window._birthInfo = {
+        dob:       document.getElementById('dob').value,
+        tob:       document.getElementById('tob_h').value.padStart(2,'0') + ':' + document.getElementById('tob_m').value.padStart(2,'0'),
+        place:     document.getElementById('place_of_birth').value,
+        utcOffset: document.getElementById('utc_offset').value,
+        startDate: document.getElementById('startDate').value,
+        endDate:   document.getElementById('endDate').value,
       };
 
       setStatus('Scanning planetary positions…', true);
@@ -885,11 +972,49 @@
       }
     }
 
+
     function makeTags(hits) {
       if (!hits || !hits.length) return '<span class="empty">—</span>';
       return hits.map(ap =>
         `<span class="planet-tag">${ap.planet} → ${ap.relation} ±${ap.orb}°</span>`
       ).join(' ');
+    }
+
+    function classificationBadge(cls, score, eventType) {
+      const ICONS = { FINAL_EVENT:'🔥', STRONG_EVENT:'⚡', MOVEMENT:'〰️', NO_EVENT:'·' };
+      const icon = ICONS[cls] || '';
+      const etLine = eventType ? `<div class="event-type" style="margin-top:4px;">${eventType}</div>` : '';
+      const scoreLine = `<div style="font-family:'JetBrains Mono',monospace;font-size:10px;margin-top:5px;opacity:0.75;">Score: ${score}</div>`;
+      return `<span class="strength-badge badge-${cls}">${icon} ${cls.replace(/_/g,' ')}</span>${etLine}${scoreLine}`;
+    }
+
+    // Live filter: hide/show rows by classification
+    document.getElementById('classification_filters').addEventListener('change', applyFilters);
+    document.getElementById('minScore').addEventListener('input', applyFilters);
+
+    function applyFilters() {
+      const allowed = new Set(
+        [...document.querySelectorAll('.cls_cb:checked')].map(cb => cb.value)
+      );
+      const minScore = parseInt(document.getElementById('minScore').value) || 0;
+      const rows = document.querySelectorAll('#results tbody tr');
+      let visible = 0;
+      rows.forEach(tr => {
+        const cls  = (tr.dataset.cls || '');
+        const score = parseInt(tr.dataset.score || '0');
+        const show = allowed.has(cls) && score >= minScore;
+        tr.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      const total = rows.length;
+      const fc = document.getElementById('filter_count');
+      if (fc) fc.textContent = total ? `Showing ${visible} of ${total} rows` : '';
+    }
+
+    function resetFilters() {
+      document.querySelectorAll('.cls_cb').forEach(cb => cb.checked = true);
+      document.getElementById('minScore').value = 0;
+      applyFilters();
     }
 
     function renderResults(data) {
@@ -899,6 +1024,7 @@
             <div class="icon">✦</div>
             No events found with current settings.
           </div>`;
+        document.getElementById('filter_count').textContent = '';
         return;
       }
 
@@ -906,11 +1032,13 @@
       const rows = [];
       data.events.forEach(e => {
         const [date, time] = e.datetime.split(' ');
-        (e.activated_natal_planets || []).forEach((np, idx) => {
+        (e.activated_natal_planets || []).forEach((np) => {
+          const cls   = np.classification || 'NO_EVENT';
+          const score = np.score || 0;
           rows.push(`
-            <tr>
+            <tr class="row-${cls}" data-cls="${cls}" data-score="${score}">
               <td class="td-datetime">
-                ${idx === 0 ? `<div class="date">${date}</div><div class="time">${time}</div>` : '<div class="time" style="opacity:0.4">↑ same</div>'}
+                <div class="date">${date}</div><div class="time">${time}</div>
               </td>
               <td class="td-planets" style="color:var(--gold);font-weight:600;white-space:nowrap;">
                 <span class="planet-tag" style="border-color:var(--gold-dim);background:var(--gold-glow);color:var(--gold);">🎯 ${np.natal_planet}</span>
@@ -918,6 +1046,9 @@
               <td class="td-planets">${makeTags(np.trigger)}</td>
               <td class="td-planets">${makeTags(np.moon)}</td>
               <td class="td-planets">${makeTags(np.background)}</td>
+              <td class="td-planets" style="min-width:160px;vertical-align:middle;">
+                ${classificationBadge(cls, score, np.event_type || '')}
+              </td>
             </tr>`);
         });
       });
@@ -925,7 +1056,7 @@
       document.getElementById('results').innerHTML = `
         <div class="results-header">
           <div class="results-count"><strong>${data.count}</strong> activation window${data.count !== 1 ? 's' : ''} found</div>
-          <button class="btn-secondary" style="font-size:11px;padding:8px 16px;" onclick="exportJSON()">↓ Export JSON</button>
+          <button class="btn-secondary" style="font-size:11px;padding:8px 16px;" onclick="exportExcel()">↓ Export Excel</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -936,24 +1067,55 @@
                 <th>Trigger (Sun/Mer/Ven/Mars)</th>
                 <th>Moon</th>
                 <th>Background (Jup/Sat/Rahu/Ketu)</th>
+                <th>Analysis</th>
               </tr>
             </thead>
             <tbody>${rows.join('')}</tbody>
           </table>
         </div>`;
+
+      // Apply any active filters immediately after render
+      applyFilters();
     }
 
-    function exportJSON() {
-      if (!scanResults.length) { alert('Run a scan first.'); return; }
-      const blob = new Blob([JSON.stringify({events: scanResults, count: scanResults.length}, null, 2)], {type:'application/json'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'saturn_transits.json';
-      a.click();
+    async function exportExcel() {
+      if (!scanResults || !scanResults.length) { alert('Run a scan first.'); return; }
+      setStatus('Generating Excel file…', true);
+      try {
+        const res = await fetch('/export_excel', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({events: scanResults, birthInfo: window._birthInfo || {}})
+        });
+        if (!res.ok) {
+          const txt = await res.text();
+          setStatus('Export error: ' + txt.replace(/<[^>]+>/g,'').trim().slice(0,200));
+          return;
+        }
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'planetary_transits.xlsx';
+        a.click();
+        setStatus('Excel file downloaded.', false);
+      } catch(e) {
+        setStatus('Export error: ' + e.message, false);
+      }
     }
 
     // Auto-compute natal on load
-    window.onload = () => computeNatal();
+    window.onload = () => {
+      // Set start date = yesterday, end date = 30 days from today
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+      const future = new Date(today);
+      future.setDate(today.getDate() + 30);
+      const fmt = d => d.toISOString().slice(0, 10);
+      document.getElementById('startDate').value = fmt(yesterday);
+      document.getElementById('endDate').value   = fmt(future);
+      computeNatal();
+    };
   </script>
 </body>
 </html>

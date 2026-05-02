@@ -30,6 +30,32 @@ for fname in files:
 swe.set_ephe_path(EPHE_DIR)
 swe.set_sid_mode(swe.SIDM_LAHIRI)
 
+# from flask import Flask, render_template, request, jsonify
+# import swisseph as swe
+# import os
+# import requests
+# from datetime import datetime, timedelta
+
+# app = Flask(__name__)
+
+# # ====================== SWISS EPHEMERIS ======================
+# EPHE_DIR = os.path.join(os.getcwd(), "ephe")
+# os.makedirs(EPHE_DIR, exist_ok=True)
+
+# BASE_URL = "https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/"
+# files = ["sepl_18.se1", "semo_18.se1", "seas_18.se1"]
+
+# for fname in files:
+#     target = os.path.join(EPHE_DIR, fname)
+#     if not os.path.exists(target):
+#         r = requests.get(BASE_URL + fname)
+#         if r.status_code == 200:
+#             with open(target, "wb") as f:
+#                 f.write(r.content)
+
+# swe.set_ephe_path(EPHE_DIR)
+# swe.set_sid_mode(swe.SIDM_LAHIRI)
+
 SIGNS = ["Ari", "Tau", "Gem", "Can", "Leo", "Vir", "Lib", "Sco", "Sag", "Cap", "Aqu", "Pis"]
 
 def lon_to_str(lon):
@@ -44,14 +70,15 @@ PLANETS = {
 }
 
 PLANET_MEANINGS = {
-    "sun":      "authority / career",
-    "moon":     "emotions / movement",
-    "mercury":  "communication",
-    "venus":    "relationships",
-    "mars":     "action / conflict",
-    "jupiter":  "growth / expansion",
-    "saturn":   "career / job",
-    "truenode": "sudden / unconventional",
+    "sun":       "authority / career",
+    "moon":      "emotions",
+    "mercury":   "communication",
+    "venus":     "relationships",
+    "mars":      "action",
+    "jupiter":   "growth",
+    "saturn":    "career / karma",
+    "truenode":  "sudden events",
+    "southnode": "past karma",
 }
 
 def get_positions(dt):
@@ -125,15 +152,82 @@ PLANET_DISPLAY = {
 }
 
 PLANET_MEANINGS = {
-    "sun":      "authority / career",
-    "moon":     "emotions / movement",
-    "mercury":  "communication",
-    "venus":    "relationships",
-    "mars":     "action / conflict",
-    "jupiter":  "growth / expansion",
-    "saturn":   "career / job",
-    "truenode": "sudden / unconventional",
+    "sun":       "authority / career",
+    "moon":      "emotions",
+    "mercury":   "communication",
+    "venus":     "relationships",
+    "mars":      "action",
+    "jupiter":   "growth",
+    "saturn":    "career / karma",
+    "truenode":  "sudden events",
+    "southnode": "past karma",
 }
+
+# ====================== SCORING & CLASSIFICATION ======================
+
+PLANET_WEIGHTS = {
+    'venus':     30,
+    'moon':      25,
+    'mercury':   20,
+    'mars':      20,
+    'sun':       20,
+    'jupiter':   15,
+    'saturn':    15,
+    'truenode':  10,
+    'southnode': 10,
+}
+
+EVENT_TYPE_MAP = {
+    'venus':   'Agreement / Offer',
+    'mercury': 'Communication',
+    'mars':    'Action / Conflict',
+    'sun':     'Decision / Authority',
+}
+
+def compute_score_and_classification(trigger_hits, moon_hits, bg_hits):
+    """
+    Given lists of hit dicts (each has 'planet' key as display name or raw key),
+    compute total score and return (score, classification, event_type).
+    """
+    # Build a reverse map from display name to planet key
+    DISPLAY_TO_KEY = {v: k for k, v in PLANET_DISPLAY.items()}
+    DISPLAY_TO_KEY['Rahu'] = 'truenode'
+    DISPLAY_TO_KEY['Ketu'] = 'southnode'
+
+    score = 0
+    trigger_planet_keys = []
+
+    all_hits = trigger_hits + moon_hits + bg_hits
+    for hit in all_hits:
+        pname = hit.get('planet', '')
+        pkey = DISPLAY_TO_KEY.get(pname, pname.lower())
+        score += PLANET_WEIGHTS.get(pkey, 0)
+        if pkey in EVENT_TYPE_MAP:
+            trigger_planet_keys.append(pkey)
+
+    trigger_ok = bool(trigger_hits)
+    moon_ok    = bool(moon_hits)
+    bg_ok      = bool(bg_hits)
+
+    # Classification — bucket presence takes priority over score
+    if trigger_ok and moon_ok and bg_ok:
+        classification = 'FINAL_EVENT'
+    elif trigger_ok and bg_ok:
+        classification = 'STRONG_EVENT'
+    elif moon_ok and bg_ok:
+        classification = 'MOVEMENT'
+    else:
+        classification = 'NO_EVENT'
+
+    # Event type — use the first matched trigger planet
+    event_type = ''
+    for pk in trigger_planet_keys:
+        if pk in EVENT_TYPE_MAP:
+            event_type = EVENT_TYPE_MAP[pk]
+            break
+
+    return score, classification, event_type
+
 
 @app.route('/')
 def index():
@@ -158,14 +252,26 @@ def natal():
     natal_out = {k: {"longitude": round(v, 4), "display": lon_to_str(v)}
                  for k, v in pos.items()}
 
-    # Build axis for every natal planet
+    # Build axis for every natal planet — all 12 aspects (0-330 in 30° steps)
+    ALL_ASPECTS = {
+        "0° ": 0,
+        "30° ": 30,
+        "60° ": 60,
+        "90° ": 90,
+        "120° ": 120,
+        "150° ": 150,
+        "180° ": 180,
+        "210° ": 210,
+        "240° ": 240,
+        "270° ": 270,
+        "300° ": 300,
+        "330° ": 330,
+    }
     all_axes = {}
     for planet_key, lon in pos.items():
         all_axes[planet_key] = {
-            "Conjunction": round(lon % 360, 4),
-            "Trine 120":   round((lon + 120) % 360, 4),
-            "Trine 240":   round((lon + 240) % 360, 4),
-            "Opposition":  round((lon + 180) % 360, 4),
+            label: round((lon + offset) % 360, 4)
+            for label, offset in ALL_ASPECTS.items()
         }
 
     return jsonify({"natal": natal_out, "all_axes": all_axes})
@@ -174,7 +280,16 @@ def natal():
 def scan():
     data = request.get_json()
 
-    all_axes         = data.get('allAxes', {})
+    all_axes_full    = data.get('allAxes', {})
+    selected_aspects = set(data.get('selectedAspects', []))  # e.g. {"0","120","180"}
+    # Filter each natal planet's axis to only selected aspect offsets
+    all_axes = {}
+    for natal_p, aspect_map in all_axes_full.items():
+        filtered = {label: lon for label, lon in aspect_map.items()
+                    if not selected_aspects or any(label.startswith(f"{a}°") or label.startswith(f"{a} ") for a in selected_aspects)}
+        if filtered:
+            all_axes[natal_p] = filtered
+
     selected_planets = data.get('selectedPlanets', list(PLANET_DISPLAY.keys()))
     orb_trigger = float(data.get('orbTrigger', 1.0))
     orb_moon    = float(data.get('orbMoon', 1.0))
@@ -245,30 +360,166 @@ def scan():
                 elif planet_key in BG_PLANETS:
                     natal_buckets[natal_planet]["background"].append(hit_info)
 
-        # Only emit if at least one natal planet has ALL THREE groups activated
+        # Emit if a natal planet has trigger+moon+bg (FINAL_EVENT),
+        # trigger+bg (STRONG_EVENT), or moon+bg (MOVEMENT).
+        # Require at least 2 of the 3 groups to avoid pure NO_EVENT noise.
         activated_natal = {
             np: buckets
             for np, buckets in natal_buckets.items()
-            if buckets["trigger"] and buckets["moon"] and buckets["background"]
+            if (buckets["trigger"] and buckets["background"]) or
+               (buckets["moon"] and buckets["background"]) or
+               (buckets["trigger"] and buckets["moon"] and buckets["background"])
         }
 
         if activated_natal:
+            natal_entries = []
+            for np, buckets in activated_natal.items():
+                score, classification, event_type = compute_score_and_classification(
+                    buckets["trigger"], buckets["moon"], buckets["background"]
+                )
+                natal_entries.append({
+                    "natal_planet":    PLANET_DISPLAY.get(np, np),
+                    "trigger":         buckets["trigger"],
+                    "moon":            buckets["moon"],
+                    "background":      buckets["background"],
+                    "score":           score,
+                    "classification":  classification,
+                    "event_type":      event_type,
+                })
             results.append({
                 "datetime": dt.strftime("%Y-%m-%d %H:%M"),
-                "activated_natal_planets": [
-                    {
-                        "natal_planet": PLANET_DISPLAY.get(np, np),
-                        "trigger":    buckets["trigger"],
-                        "moon":       buckets["moon"],
-                        "background": buckets["background"],
-                    }
-                    for np, buckets in activated_natal.items()
-                ]
+                "activated_natal_planets": natal_entries
             })
 
         dt += step
 
     return jsonify({"events": results, "count": len(results)})
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+
+@app.route('/export_excel', methods=['POST'])
+def export_excel():
+    import io
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    data = request.get_json()
+    events = data.get('events', [])
+    birth_info = data.get('birthInfo', {})
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Planetary Transits"
+
+    # Colors
+    hdr_fill   = PatternFill("solid", fgColor="2C1F0E")
+    gold_fill  = PatternFill("solid", fgColor="9A6F1E")
+    sub_fill   = PatternFill("solid", fgColor="F2EDE6")
+    nat_fill   = PatternFill("solid", fgColor="FDF0D0")
+    white_font = Font(color="FFFFFF", bold=True, name="Calibri", size=12)
+    gold_font  = Font(color="9A6F1E", bold=True, name="Calibri", size=12)
+    body_font  = Font(name="Calibri", size=11)
+    bold_font  = Font(name="Calibri", size=11, bold=True)
+    thin = Side(style='thin', color="DDD5C8")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    # Row 1: Title header — set value/style BEFORE merging
+    c1 = ws.cell(row=1, column=1, value="Planetary Scanner — Transit Report")
+    c1.font = Font(color="FFFFFF", bold=True, name="Calibri", size=13)
+    c1.fill = hdr_fill
+    c1.alignment = Alignment(horizontal="center", vertical="center")
+    ws.merge_cells("A1:G1")
+    ws.row_dimensions[1].height = 28
+
+    # Row 2: Birth info — set value/style BEFORE merging
+    info_str = (f"DOB: {birth_info.get('dob','')}  TOB: {birth_info.get('tob','')}  "
+                f"Place: {birth_info.get('place','')}  UTC: {birth_info.get('utcOffset','')}  "
+                f"Scan: {birth_info.get('startDate','')} → {birth_info.get('endDate','')}")
+    c2 = ws.cell(row=2, column=1, value=info_str)
+    c2.font = Font(color="C8A96A", name="Calibri", size=9, italic=True)
+    c2.fill = hdr_fill
+    c2.alignment = Alignment(horizontal="center", vertical="center")
+    ws.merge_cells("A2:G2")
+    ws.row_dimensions[2].height = 18
+
+    # Row 3: Column headers — use explicit row=3, never ws.append near merged cells
+    headers = ["Date", "Time", "Natal Planet", "Trigger Planets", "Moon", "Background Planets", "Analysis"]
+    HDR_ROW = 3
+    for col, h in enumerate(headers, 1):
+        c = ws.cell(row=HDR_ROW, column=col, value=h)
+        c.font = white_font
+        c.fill = gold_fill
+        c.alignment = Alignment(horizontal="center", vertical="center")
+        c.border = border
+    ws.row_dimensions[HDR_ROW].height = 22
+
+    def fmt_hits(hits):
+        if not hits: return "—"
+        return " | ".join(f"{h['planet']} → {h['relation']} ±{h['orb']}°" for h in hits)
+
+    # Classification fill colors
+    CLASS_FILLS = {
+        'FINAL_EVENT':  PatternFill("solid", fgColor="D6F0DF"),
+        'STRONG_EVENT': PatternFill("solid", fgColor="D6E8F5"),
+        'MOVEMENT':     PatternFill("solid", fgColor="FDF0D0"),
+        'NO_EVENT':     PatternFill("solid", fgColor="F2EDE6"),
+    }
+    CLASS_FONTS = {
+        'FINAL_EVENT':  Font(name="Calibri", size=11, bold=True, color="1A5C30"),
+        'STRONG_EVENT': Font(name="Calibri", size=11, bold=True, color="1A3F5C"),
+        'MOVEMENT':     Font(name="Calibri", size=11, bold=True, color="6B4E10"),
+        'NO_EVENT':     Font(name="Calibri", size=11, color="4A3F30"),
+    }
+
+    # Data rows — explicit row counter avoids ws.max_row unreliability near merged cells
+    current_row = HDR_ROW + 1
+    for event in events:
+        dt_parts = event['datetime'].split(' ')
+        date_str = dt_parts[0]
+        time_str = dt_parts[1] if len(dt_parts) > 1 else ''
+        for np in event.get('activated_natal_planets', []):
+            natal_name = np['natal_planet']
+            score = np.get('score', 0)
+            classification = np.get('classification', '')
+            event_type = np.get('event_type', '')
+            analysis_str = f"{classification}\n{event_type}\nScore: {score}" if event_type else f"{classification}\nScore: {score}"
+            row_data = [
+                date_str, time_str, natal_name,
+                fmt_hits(np.get('trigger', [])),
+                fmt_hits(np.get('moon', [])),
+                fmt_hits(np.get('background', [])),
+                analysis_str,
+            ]
+            ws.row_dimensions[current_row].height = 48
+            cls_fill = CLASS_FILLS.get(classification, sub_fill)
+            cls_font = CLASS_FONTS.get(classification, body_font)
+            for col, val in enumerate(row_data, 1):
+                c = ws.cell(row=current_row, column=col, value=val)
+                if col == 7:
+                    c.font = cls_font
+                    c.fill = cls_fill
+                    c.alignment = Alignment(vertical="center", wrap_text=True, horizontal="center")
+                else:
+                    c.font = bold_font if col == 3 else body_font
+                    c.fill = nat_fill if col == 3 else sub_fill
+                    c.alignment = Alignment(vertical="center", wrap_text=(col >= 4))
+                c.border = border
+            current_row += 1
+
+    # Column widths
+    widths = [12, 8, 16, 50, 32, 50, 28]
+    for i, w in enumerate(widths, 1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+
+    # Freeze top 3 rows + header
+    ws.freeze_panes = "A4"
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    from flask import send_file
+    return send_file(buf, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                     as_attachment=True, download_name='planetary_transits.xlsx')
+
+if __name__ == '__main__':
+    app.run(debug=True)
